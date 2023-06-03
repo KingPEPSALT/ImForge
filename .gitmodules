@@ -4,4 +4,4 @@
 
 [submodule "imgui"]
     path = external/imgui
-    url = htpps://github.com/ocornut/imgui.git
+    url = https://github.com/ocornut/imgui.git

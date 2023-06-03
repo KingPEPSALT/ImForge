@@ -1,128 +1,139 @@
-#include <SDL3/SDL.h>
 #include <imgui.h>
-#include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_sdl3.h>
-#include <iostream>
+#include <backends/imgui_impl_sdlrenderer3.h>
+#include <stdio.h>
+#include <SDL3/SDL.h>
 
-#define _ImForge_Print_SDL_Err(func, ... )              \
-    if(func(__VA_ARGS__))                               \
-        std::cout << "[ERR] " << #func                  \
-            << " failed: " << SDL_GetError()            \
-            << std::endl;                               \
-
-int main() {
-    if (SDL_Init(SDL_INIT_EVERYTHING)) {
-        std::cout << "[ERR] SDL_Init failed:" << SDL_GetError() << std::endl;
+inline int Set_SDL_Colour(SDL_Renderer* renderer, const SDL_Colour& colour) {
+    return SDL_SetRenderDrawColor(renderer, colour.r, colour.g, colour.b, colour.a);
+}
+// Main code
+int main(int, char**)
+{
+    // Setup SDL
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0)
+    {
+        printf("Error: SDL_Init(): %s\n", SDL_GetError());
         return -1;
     }
 
-    /* OpenGL setup: using GL 4.6 and GLSL 460 */
-    const char* GLSL_version = "#version 460";
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
-
-#ifdef SDL_HINT_IME_SHOW_UI
+    // Enable native IME.
     SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
-#endif
 
-    /* OpenGL attributes */
+    // Create window with graphics context
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
-    /* window setup */
-    SDL_Window* window = SDL_CreateWindow(
-        "ImForge [INITIAL]", 1280, 720, 
-        SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY
-    );
-    if(!window){
-        std::cout << "[ERR] SDL_CreateWindow failed: " << SDL_GetError() << std::endl;
+
+    SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_RESIZABLE);
+    SDL_Window* window = SDL_CreateWindow("Dear ImGui SDL3+OpenGL3 example", 1280, 720, window_flags);
+    if (!window)
+    {
+        printf("Error: SDL_CreateWindow(): %s\n", SDL_GetError());
         return -1;
     }
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, NULL, SDL_RENDERER_SOFTWARE | SDL_RENDERER_PRESENTVSYNC);
+    SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    SDL_ShowWindow(window);
+    SDL_SetRenderVSync(renderer, 1);
 
-    /* OpenGL context setup */
-    SDL_GLContext gl_context = SDL_GL_CreateContext(window);
-    if(!gl_context){
-        std::cout << "[ERR] SDL_GL_CreateContext failed: " << SDL_GetError() << std::endl;
-        return -1;
-    }
-
-    /* connect window & OpenGL context & enable V-Sync */
-    _ImForge_Print_SDL_Err(SDL_GL_MakeCurrent, window, gl_context);
-    _ImForge_Print_SDL_Err(SDL_GL_SetSwapInterval, 1); 
-
-    // ImGui context setup
+    // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+
+    // Setup Dear ImGui style
     ImGui::StyleColorsDark();
 
-    // setup backends
-    ImGui_ImplSDL3_InitForOpenGL(window, gl_context);
-    ImGui_ImplOpenGL3_Init(GLSL_version);
+    // Setup Platform/Renderer backends
+    ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
+    ImGui_ImplSDLRenderer3_Init(renderer);
 
-    ImVec4 grey = ImVec4(.5f, .5f, .5f, 1.f);
-    ImVec4 skyblue = ImVec4(.4f, .8f, .4f, 1.f);
-    SDL_Rect fullscreen_rect = SDL_Rect{0,  0, (int)io.DisplaySize.x, (int)io.DisplaySize.y};
-    SDL_FRect square = SDL_FRect{100.f, 100.f, 100.f, 100.f};
+    // Our state
+    bool show_demo_window = true;
+    bool show_another_window = false;
+    SDL_Colour crimson = {230, 10, 10, SDL_ALPHA_OPAQUE};
+    ImVec4 clear_color = ImVec4(.4f, .5f, .4f, 1.f);
 
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, NULL, SDL_RENDERER_SOFTWARE | SDL_RENDERER_PRESENTVSYNC);
-    if(!renderer){
-        std::cout << "[ERR] << SDL_CreateRenderer failed: " << SDL_GetError() << std::endl;
-        return -1;
-    }
+    // Main loop
+    bool done = false;
+    while (!done)
+    {
 
-    _ImForge_Print_SDL_Err(SDL_SetRenderDrawColor, renderer, skyblue.x, skyblue.y, skyblue.z, 1.f);
-    _ImForge_Print_SDL_Err(SDL_SetRenderDrawBlendMode, renderer, SDL_BLENDMODE_BLEND);
-    _ImForge_Print_SDL_Err(SDL_SetRenderViewport, renderer, &fullscreen_rect);
-    
-    _ImForge_Print_SDL_Err(SDL_SetRenderDrawColor, renderer, skyblue.x, skyblue.y, skyblue.z, 1.f);
-
-    bool finished = false;
-    while (!finished) {
-
-        /* poll events & check for quit events */ 
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            ImGui_ImplSDL3_ProcessEvent(&event);
-            finished = event.type == SDL_EVENT_QUIT 
-                || (event.type >= SDL_EVENT_WINDOW_FIRST && event.type <= SDL_EVENT_WINDOW_LAST 
-                && event.window.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED 
-                && event.window.windowID == SDL_GetWindowID(window));
-        }
- 
-        /* ImGui frame creation */
-        ImGui_ImplOpenGL3_NewFrame();
+        SDL_RenderClear(renderer);
+        SDL_RenderPresent(renderer);
+        // Start the Dear ImGui frame
+        ImGui_ImplSDLRenderer3_NewFrame();
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::Begin("[INITIAL]");
-        ImGui::Text("If you are reading this, you are viewing the [INITIAL] commit!"); 
-        ImGui::Text("(%.2f FPS)", io.Framerate);
+        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+        if (show_demo_window)
+            ImGui::ShowDemoWindow(&show_demo_window);
 
-        ImGui::End();
+        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+        {
+            static float f = 0.0f;
+            static int counter = 0;
+
+            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+
+            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+            ImGui::Checkbox("Another Window", &show_another_window);
+
+            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+
+            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+                counter++;
+            ImGui::SameLine();
+            ImGui::Text("counter = %d", counter);
+
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+            ImGui::End();
+        }
+
+        // 3. Show another simple window.
+        if (show_another_window)
+        {
+            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+            ImGui::Text("Hello from another window!");
+            if (ImGui::Button("Close Me"))
+                show_another_window = false;
+            ImGui::End();
+        }
+
+        // Rendering
         ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        SDL_Event event;
+        while (SDL_PollEvent(&event))
+        {
+            ImGui_ImplSDL3_ProcessEvent(&event);
+            if (event.type == SDL_EVENT_QUIT)
+                done = true;
+            if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(window))
+                done = true;
+        }
+        ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData());
 
-        /* present render to window and clear screen */
-        _ImForge_Print_SDL_Err(SDL_RenderPresent, renderer);
-        _ImForge_Print_SDL_Err(SDL_RenderClear, renderer);
+        SDL_RenderPresent(renderer);
 
         SDL_GL_SwapWindow(window);
     }
+#ifdef __EMSCRIPTEN__
+    EMSCRIPTEN_MAINLOOP_END;
+#endif
 
-    // clean shutdown
-    ImGui_ImplOpenGL3_Shutdown();
+    // Cleanup
+    ImGui_ImplSDLRenderer3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
 
-    SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
     SDL_Quit();
 
     return 0;
 }
-
