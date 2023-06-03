@@ -23,3 +23,7 @@ target_include_directories(imgui PUBLIC
 )
 
 target_link_libraries(imgui PRIVATE SDL3::SDL3)
+
+# --- spdlog --- 
+set(SPDLOG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/spdlog)
+add_subdirectory(${SPDLOG_DIR})

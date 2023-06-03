@@ -9,6 +9,7 @@ Library|Description
 ---|---
 [__**ImGui**__](https://github.com/ocornut/imgui)   | Immediate GUI library     
 [__**SDL**__](https://github.com/libsdl-org/sdl)    | Simple Directmedia Layer  
+[__**spdlog**__](https://github.com/gabime/spdlog)  | Fast C++ logging library
 
 
 **OpenGL version:** 4.6 \

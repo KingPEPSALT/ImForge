@@ -29,10 +29,12 @@ target_include_directories(ImForge PRIVATE
 
 add_dependencies(ImForge 
     SDL3::SDL3
-    imgui    
+    imgui
+    spdlog::spdlog
 )
 
 target_link_libraries(ImForge PRIVATE 
     SDL3::SDL3
     imgui
+    spdlog::spdlog
 )
