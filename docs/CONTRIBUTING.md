@@ -20,7 +20,7 @@ Stick to using [<u>conventional commits</u>](https://www.conventionalcommits.org
 
 ---
 ## Technical Details
-The libraries we use are listed in the [__README.md__](./README.md). Specifically, we use [<u>SDL3</u>](https://github.com/libsdl-org/sdl) with the SDL3Renderer for OS-agnostic rendering (as it will select the correct render driver for us). SDL3 is (as of 03/06/2023), quite new and may have issues, though these should be ultimately sparse as we won't be using SDL directly all too much. 
+The libraries we use are listed in the [__README.md__](./README.md). Specifically, we use [<u>SDL3</u>](https://github.com/libsdl-org/sdl) with the SDL3Renderer for OS-agnostic rendering (as it will select the correct render driver for us). SDL3 is (as of 2023-06-03), quite new and may have issues, though these should be ultimately sparse as we won't be using SDL directly all too much. 
 
 ---
 ## Document Writers
