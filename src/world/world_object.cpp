@@ -1,4 +1,4 @@
-#include "world_objects/world_object.hpp"
+#include "world/world_object.hpp"
 
 namespace ImForge::World {
 WorldObject::WorldObject(
