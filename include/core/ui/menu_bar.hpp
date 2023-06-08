@@ -21,6 +21,9 @@ struct MenuBar {
         const char* shortcut;
         bool selected;
         bool enabled;
+        void (*on_select_callback)(MenuBar* parent);
+        void (*on_first_select_callback)(MenuBar* parent);
+        bool first_select;
     };
 
     /* 
@@ -35,9 +38,18 @@ struct MenuBar {
     /**
      * @brief attach the MenuBar to the current window
      * 
-     * @return true/false on success/fail
+     * @return true on success;
+     * @return false on fail.
      */
     bool attach();
+
+    /**
+     * @brief call on_select_callbacks 
+     * 
+     * @return true on success;
+     * @return false on fail. 
+     */
+    void pollEvents();
 
     /**
      * @brief add a menu to the MenuBar 
@@ -85,15 +97,21 @@ struct MenuBar {
      * @param selected whether the MenuItem is selected, set to false by default
      * @param enabled whether the MenuItem is enabled, set to true by default
      * @param shortcut shortcut text - i.e., CTRL-S for Save - set to NULL by default
+     * @param on_select_callback a function pointer to a function that is called on select
+     * @param on_first_select_callback a function pointer to a function that runs on the first select
      */
     inline void addItem(
         std::string menu,
         std::string label, 
+        const char* shortcut = NULL,
         bool selected = false, 
         bool enabled = true,
-        const char* shortcut = NULL
+        void (*on_select_callback)(MenuBar* parent) = nullptr,
+        void (*on_first_select_callback)(MenuBar* parent) = nullptr
     ) {
-        this->addItem(menu, MenuItem{label, shortcut, selected, enabled});
+        this->addItem(menu, MenuItem{
+            label, shortcut, selected, enabled, on_select_callback, on_first_select_callback, true
+        });
     };
 
     /**

@@ -102,6 +102,23 @@ int main(int, char**)
     bool item_created = false; 
     bool item_deleted = false;
     bool done = false;
+
+    menubar.menu_items["0x03!"].at(0).on_first_select_callback = 
+        [](auto parent) {
+            parent->menu_items["0x03!"].at(0).name = "goodbye";
+            parent->menu_items["0x03!"].at(0).enabled = false;
+        };
+
+    menubar.menu_items["0x03!"].at(1).on_first_select_callback = 
+        [](auto parent) {
+            parent->addItem("0x03!", "I lied.");
+        };
+
+    menubar.menu_items["0x03!"].at(2).on_first_select_callback = 
+        [](auto parent) {
+            parent->removeItem("0x03!", "or don't");
+        };
+    
     while (!done)
     {
 
@@ -113,21 +130,8 @@ int main(int, char**)
                 || (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED 
                 && event.window.windowID == SDL_GetWindowID(window));
         }
+        menubar.pollEvents();
 
-        if(menubar.menu_items["0x03!"].at(0).selected){
-            menubar.menu_items["0x03!"].at(0).name = "goodbye";
-            menubar.menu_items["0x03!"].at(0).enabled = false;
-        }
-        if(menubar.menu_items["0x03!"].at(1).selected && !item_created){
-            item_created = true;
-            menubar.addItem("0x03!", "I lied.");
-        }
-
-        if(menubar.menu_items["0x03!"].at(2).selected && !item_deleted) {
-            item_deleted = true;
-            menubar.removeItem("0x03!", "or don't!");
-        }
-        
         // start ImGui frame
         ImGui_ImplSDLRenderer3_NewFrame();
         ImGui_ImplSDL3_NewFrame();

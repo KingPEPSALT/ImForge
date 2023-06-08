@@ -44,6 +44,22 @@ bool MenuBar::attach() {
 
 }
 
+void MenuBar::pollEvents() {
+    for(auto& pair: this->menu_items)
+        for(auto& item: pair.second){
+            if(!item.selected)
+                continue;
+            if(item.first_select && item.on_first_select_callback) {
+                item.on_first_select_callback(this);
+                item.first_select = false;
+                continue;
+            }
+            if(!item.on_select_callback)
+                continue;
+            item.on_select_callback(this);
+        }
+}
+
 void MenuBar::addItems(
     std::string menu,
     std::vector<MenuBar::MenuItem> menu_items
