@@ -77,51 +77,47 @@ int main(int, char**)
 
     bool show_demo_window = true;
     bool show_another_window = false;
-    ImVec4 clear_colour = ImVec4(.2f, .7f, 1.f, 1.f);
+    ImVec4 clear_colour = ImVec4(.9f, .49f, 1.f, 1.f);
 
-    // MenuBar stress test
-    ImForge::Core::UI::MenuBar menubar({"01", "02", "0x03!"});
-    menubar.addItems("01", {
-        "this",
-        "is",
-        "a",
-        "menu"
-    });
-    menubar.addItems("02", {
-        "another"
-    });
-    menubar.addItems("0x03!", {
-        "hello",
-        "click me to delete me...",
-        "or don't!"
-    });
-    
-    menubar.removeMenu("02");
+    ImForge::Core::UI::MenuBar menubar{};
+    menubar.addMenu("01", {
+            "this", "is", "a", "menu"
+        }).addMenu("02", {
+            "another"
+        }).addMenu("0x03!", {
+            "hello",
+            "click me to delete me...",
+            "or don't!"
+        }).insertMenuAfter("02", "02.5f", {
+            "stuff"
+        }).insertMenuBefore("02", "01.5f")
+        .insertMenuBefore("01", "00.5f")
+        .insertItemAfter("01", "is", "not");
 
-    // toggle variable to ensure we only run the line 116 if-statement once 
-    bool item_created = false; 
-    bool item_deleted = false;
     bool done = false;
 
-    menubar.menu_items["0x03!"].at(0).on_first_select_callback = 
+    menubar.getItemMut("0x03!", "hello")->on_first_select_callback = 
         [](auto parent) {
-            parent->menu_items["0x03!"].at(0).name = "goodbye";
-            parent->menu_items["0x03!"].at(0).enabled = false;
+            auto menu_item = parent.getItemMut("0x03!", "hello");
+            menu_item->name = "goodbye";
+            menu_item->enabled = false;
         };
 
-    menubar.menu_items["0x03!"].at(1).on_first_select_callback = 
+    menubar.getItemMut("0x03!", "click me to delete me...")->on_first_select_callback = 
         [](auto parent) {
-            parent->addItem("0x03!", "I lied.");
+            //parent.addItem("0x03!", "I lied!");
+            parent.addMenu("0x04!!");
+            parent.addItem("0x04!!", "I lied!");
         };
 
-    menubar.menu_items["0x03!"].at(2).on_first_select_callback = 
+    menubar.getItemMut("0x03!", "or don't!")->on_first_select_callback = 
         [](auto parent) {
-            parent->removeItem("0x03!", "or don't");
+            parent.removeItem("0x03!", "or don't");
         };
-    
+    size_t last_copied = 3;
+    std::string copy_buttons[3];
     while (!done)
     {
-
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
@@ -135,6 +131,17 @@ int main(int, char**)
         // start ImGui frame
         ImGui_ImplSDLRenderer3_NewFrame();
         ImGui_ImplSDL3_NewFrame();
+
+        copy_buttons[0] = std::format("#{:02x}{:02x}{:02x}", 
+                (uint8_t)(clear_colour.x*255), (uint8_t)(clear_colour.y*255), (uint8_t)(clear_colour.z*255)
+        );
+        copy_buttons[1] = std::format("({:d}, {:d}, {:d})", 
+            (uint8_t)(clear_colour.x*255), (uint8_t)(clear_colour.y*255), (uint8_t)(clear_colour.z*255)
+        );
+        copy_buttons[2] = std::format("({:.2f}, {:.2f}, {:.2f})", 
+            clear_colour.x, clear_colour.y, clear_colour.z
+        );
+
         ImGui::NewFrame();
         {
             if(!ImGui::Begin("Background picker", nullptr, ImGuiWindowFlags_MenuBar)){
@@ -143,8 +150,19 @@ int main(int, char**)
             menubar.attach();
 
             ImGui::Text("Choose a background colour");
-            ImGui::ColorEdit3("clear color", (float*)&clear_colour); 
-
+            ImGui::ColorEdit3("background color", (float*)&clear_colour); 
+            ImGui::Text("Copy: ");
+            for(int i = 0; i < 3; i++){
+                ImGui::SameLine();
+                if(ImGui::Button(copy_buttons[i].c_str())){
+                    ImGui::LogToClipboard();
+                    ImGui::LogText(copy_buttons[i].c_str());
+                    ImGui::LogFinish();
+                    last_copied = i;
+                }
+            }
+            if(last_copied != 3)
+                ImGui::Text("Copied: %s!", copy_buttons[last_copied].c_str());
             ImGui::Text("FPS: %.1f (%.3fms)", io.Framerate,  1000.f / io.Framerate);
             ImGui::End();
         }

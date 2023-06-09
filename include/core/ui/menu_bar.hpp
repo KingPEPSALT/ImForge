@@ -21,165 +21,204 @@ struct MenuBar {
         const char* shortcut;
         bool selected;
         bool enabled;
-        void (*on_select_callback)(MenuBar* parent);
-        void (*on_first_select_callback)(MenuBar* parent);
-        bool first_select;
+        void (*on_select_callback)(MenuBar& parent);
+        void (*on_first_select_callback)(MenuBar& parent);
+        bool first_select;    
+        
+        MenuItem(
+            std::string name,
+            const char* shortcut = NULL,
+            bool selected = false,
+            bool enabled = true,
+            void (*on_select_callback)(MenuBar& parent) = nullptr,
+            void (*on_first_select_callback)(MenuBar& parent) = nullptr,
+            bool first_select = true
+        ) : name(name)
+            , shortcut(shortcut)
+            , selected(selected)
+            , enabled(enabled)
+            , on_select_callback(on_select_callback)
+            , on_first_select_callback(on_first_select_callback)
+            , first_select(first_select) {};
+        
+        MenuItem(
+            const char* name,
+            const char* shortcut = NULL,
+            bool selected = false,
+            bool enabled = true,
+            void (*on_select_callback)(MenuBar& parent) = nullptr,
+            void (*on_first_select_callback)(MenuBar& parent) = nullptr,
+            bool first_select = true
+        ) : name(name) 
+            , shortcut(shortcut)
+            , selected(selected)
+            , enabled(enabled)
+            , on_select_callback(on_select_callback)
+            , on_first_select_callback(on_first_select_callback)
+            , first_select(first_select) {};
+
+        MenuItem() {};
     };
 
+
     /* 
+        maps don't maintain insertion order and so without using
+        another library, (as there is nothing in the std of the
+        like), we just use a vector.
+
         to avoid writing our own const char* comparison struct
         we opt to use std::string for the map's keyval, for why
         we can't use const char*:
             - https://stackoverflow.com/questions/4157687/using-char-as-a-key-in-stdmap
     */
-    std::vector<std::string> menus;
-    std::map<std::string, std::vector<MenuItem>> menu_items;
+    std::vector<std::string> menu_names;
+    std::map<std::string, std::vector<MenuItem>> menus;
 
-    /**
-     * @brief attach the MenuBar to the current window
-     * 
-     * @return true on success;
-     * @return false on fail.
-     */
     bool attach();
 
-    /**
-     * @brief call on_select_callbacks 
-     * 
-     * @return true on success;
-     * @return false on fail. 
-     */
     void pollEvents();
 
-    /**
-     * @brief add a menu to the MenuBar 
-     * 
-     * @param label 
-     */
-    inline void addMenu(std::string label) {
-        this->menus.push_back(label);
-        this->menu_items.insert(
-            std::make_pair(label, std::vector<MenuItem>())
-        );
+    inline MenuItem* getItemMut(std::string menu_name, std::string item_name){
+        auto pos = this->menus[menu_name].begin();
+        while(pos != this->menus[menu_name].end() && (pos++)->name != item_name);
+        return (--pos)._Ptr;
     }
 
-    /**
-     * @brief add a vector of menus to the MenuBar
-     * 
-     * @param menus the vector of menus  
-     */
-    inline void addMenus(const std::vector<std::string>& menus) {
-        for(std::string menu : menus)
-            this->addMenu(menu);
+    inline MenuItem getItem(std::string menu_name, std::string item_name){
+        return *this->getItemMut(menu_name, item_name);
     }
 
-
-    /**
-     * @brief adds a MenuItem to a menu on the MenuBar
-     * 
-     * @param menu the label of the menu to add to
-     * @param menu_item the MenuItem to add
-     */
-    inline void addItem(
-        std::string menu,
-        MenuItem menu_item
-    ){
-        if(!this->menu_items.contains(menu))
-            return;
-        this->menu_items[menu].push_back(menu_item);
+    inline std::vector<MenuItem>* getMenuMut(std::string name){
+        return &this->menus[name];
     }
 
-    /**
-     * @brief adds a MenuItem to a menu on the MenuBar
-     * 
-     * @param menu the label of the menu to add to
-     * @param label the shown label of the MenuItem
-     * @param selected whether the MenuItem is selected, set to false by default
-     * @param enabled whether the MenuItem is enabled, set to true by default
-     * @param shortcut shortcut text - i.e., CTRL-S for Save - set to NULL by default
-     * @param on_select_callback a function pointer to a function that is called on select
-     * @param on_first_select_callback a function pointer to a function that runs on the first select
-     */
-    inline void addItem(
-        std::string menu,
-        std::string label, 
-        const char* shortcut = NULL,
-        bool selected = false, 
-        bool enabled = true,
-        void (*on_select_callback)(MenuBar* parent) = nullptr,
-        void (*on_first_select_callback)(MenuBar* parent) = nullptr
+    inline std::vector<MenuItem> getMenu(std::string name){
+        // we need to throw an exception if it doesn't contain it 
+        return this->menus[name];
+    }
+
+    inline MenuBar& addMenu(
+        std::string menu_name,
+        std::vector<MenuItem> menu_items = std::vector<MenuItem>()
     ) {
-        this->addItem(menu, MenuItem{
-            label, shortcut, selected, enabled, on_select_callback, on_first_select_callback, true
-        });
-    };
+        this->menu_names.push_back(menu_name);
+        this->menus.insert(
+            std::make_pair(menu_name, menu_items)
+        );
+        return *this;
+    }
 
-    /**
-     * @brief adds a MenuItem to a menu on the MenuBar
-     * 
-     * @param menu the label of the menu to add to
-     * @param menu_items the vector of MenuItem to add
-     */
-    void addItems(
-        std::string menu,
+    inline MenuBar& insertMenu(
+        std::vector<std::string>::const_iterator pos, 
+        std::string menu_name, 
+        std::vector<MenuItem> menu_items = std::vector<MenuItem>()
+    ) {
+        this->menu_names.insert(pos, menu_name);
+        this->menus.insert(
+            std::make_pair(menu_name, menu_items)
+        );
+        return *this;
+    }
+
+    inline MenuBar& insertMenu(
+        size_t index, 
+        std::string menu_name,
+        std::vector<MenuItem> menu_items = std::vector<MenuItem>()
+    ){
+        this->insertMenu(this->menu_names.begin() + index, menu_name, menu_items);
+        return *this;
+    }
+
+    MenuBar& insertMenuAfter(
+        std::string menu_before, 
+        std::string menu_name,
+        std::vector<MenuItem> menu_items = std::vector<MenuItem>()
+    );
+
+    MenuBar& insertMenuBefore(
+        std::string menu_after, 
+        std::string menu_name,
+        std::vector<MenuItem> menu_items = std::vector<MenuItem>()
+    );
+
+    inline MenuBar& addMenus(
+        std::vector<std::string> menu_names,
+        std::map<std::string, std::vector<MenuItem>> menus =
+            std::map<std::string, std::vector<MenuItem>>() 
+    ) {
+        for(std::string menu_name : menu_names)
+            this->addMenu(
+                menu_name,
+                menus.contains(menu_name) 
+                    ? menus.at(menu_name) 
+                    : std::vector<MenuItem>()    
+            );
+        return *this;
+    }
+
+    inline MenuBar& addItem(
+        std::string menu_name,
+        MenuItem item
+    ){
+        if(!this->menus.contains(menu_name))
+            return *this; // may want to throw an exception here
+        this->menus[menu_name].push_back(item);
+        return *this;
+    }
+
+    MenuBar& addItems(
+        std::string menu_name,
         std::vector<MenuItem> menu_items
     );
 
-    /**
-     * @brief adds a MenuItem to a menu on the MenuBar
-     * 
-     * @param menu the label of the menu to add to
-     * @param menu_items the vector of labels of the menu items to add
-     */
-    void addItems(
-        std::string menu,
-        std::vector<std::string> menu_items
+    inline MenuBar& insertItem(
+        std::string menu_name,
+        MenuItem item,
+        std::vector<MenuItem>::const_iterator pos
+    ) {
+        this->menus[menu_name].insert(pos, item);
+        return *this;
+    };
+
+    inline MenuBar& insertItem(
+        std::string menu_name,
+        MenuItem item,
+        size_t index
+    ) {
+        this->menus[menu_name].insert(
+            this->menus[menu_name].begin() + index, 
+            item
+        );
+        return *this;
+    };
+
+    MenuBar& insertItemAfter(
+        std::string menu_name, 
+        std::string item_before,
+        MenuItem item
     );
 
+    MenuBar& insertItemBefore(
+        std::string menu_name, 
+        std::string item_after,
+        MenuItem item
+    );
 
-    /**
-     * @brief remove a MenuItem from the MenuBar with an iterator
-     * 
-     * @param menu the label of the menu with the MenuItem
-     * @param pos the position of the MenuItem to delete 
-     * @return the MenuItem deleted
-     */
-    MenuItem removeItem(std::string menu, std::vector<MenuItem>::const_iterator pos);
+    MenuItem removeItem(std::string menu_name, std::vector<MenuItem>::const_iterator pos);
 
-    /**
-     * @brief remove a MenuItem from the MenuBar
-     * 
-     * @param menu the label of the menu with the MenuItem
-     * @param label the label of the MenuItem to delete 
-     * @return the MenuItem deleted
-     */
-    MenuItem removeItem(std::string menu, std::string label);
+    MenuItem removeItem(std::string menu_name, std::string item_name);
 
-    /**
-     * @brief remove a MenuItem from the MenuBar
-     * 
-     * @param menu the label of the menu with the MenuItem
-     * @param index the index of the MenuItem to delete 
-     * @return the MenuItem deleted
-     */
-    inline MenuItem removeItem(std::string menu, size_t index) {
-        return this->removeItem(menu, this->menu_items[menu].begin() + index);
+    inline MenuItem removeItem(std::string menu_name, size_t index) {
+        return this->removeItem(menu_name, this->menus[menu_name].begin() + index);
     }
 
+    void removeMenu(std::string menu_name);
 
-    /**
-     * @brief removes a menu (and the MenuItems it contained) from the MenuBar
-     * 
-     * @param menu the label of the menu to remove
-     */
-    void removeMenu(std::string menu);
+    void removeMenu(std::vector<std::string>::const_iterator pos);
 
-    /**
-     * @brief removes a menu from the MenuBar but returns the MenuItems to you
-     * 
-     * @param menu the label of the menu to remove
-     */
-    std::vector<MenuItem> takeMenu(std::string menu);
+    std::vector<MenuItem> takeMenu(std::string menu_name);
+
+    std::vector<MenuItem> takeMenu(std::vector<std::string>::const_iterator pos);
 
     /*
         ========================================
@@ -189,46 +228,18 @@ struct MenuBar {
         ========================================
     */
 
-    /**
-     * @brief constructs a new MenuBar object
-     */
-    MenuBar() : menus(), menu_items() {};
-    
-    /**
-     * @brief constructs a new MenuBar object
-     * 
-     * @param menus the vector menus of the MenuBar
-     */
-    MenuBar(const std::vector<std::string>& menus)
-        : menus(menus.begin(), menus.end()), menu_items() {
-            for(std::string menu : menus)
-                this->menu_items.insert(
-                    std::make_pair(menu, std::vector<MenuItem>())
-                );
-        };
-
-    /**
-     * @brief constructs a new MenuBar object
-     * 
-     * @param menus the vector menus of the MenuBar
-     * @param menu_items a map of menus to MenuItems, the menu items of the MenuBar
-     */
     MenuBar(
-        const std::vector<std::string>& menus,
-        const std::map<std::string, std::vector<MenuItem>>& menu_items
-    ) : menus(menus.begin(), menus.end()), menu_items(menu_items) {};
+        std::vector<std::string> menu_names
+            = std::vector<std::string>(),
+        std::map<std::string, std::vector<MenuItem>> menus 
+            = std::map<std::string, std::vector<MenuItem>>()
+    ) : menu_names(menu_names), menus(menus) {};
 
-    /**
-     * @brief constructs a new MenuBar object
-     * 
-     * @param menus the array menus of the MenuBar
-     * @param n the number of menus in the array
-     */
     MenuBar(
-        const std::map<std::string, std::vector<MenuBar::MenuItem>>& menu_items
-    ) : menus(), menu_items(menu_items) {
-        for(const auto& pair : menu_items)
-            menus.push_back(pair.first.c_str());
+        std::map<std::string, std::vector<MenuItem>> menu
+    ) : menu_names(), menus(menus) {
+        for(const auto& menu : menus)
+            menu_names.push_back(menu.first.c_str());
     };
 
 };
