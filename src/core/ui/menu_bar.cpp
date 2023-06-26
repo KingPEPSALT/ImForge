@@ -46,10 +46,10 @@ bool MenuBar::attach() {
 
 void MenuBar::pollEvents() {
     for(auto& menu: this->menus)
-        for(auto& item: menu.second){
-            if(item.selected)
-                item.callbacks.invoke("select", *this);
-            item.callbacks.invoke("update", *this); 
+        for(size_t i = 0; i < menu.second.size(); i++){
+            if(menu.second[i].selected)
+                menu.second[i].callbacks.invoke("select", *this);
+            menu.second[i].callbacks.invoke("update", *this);
         }
 }
 

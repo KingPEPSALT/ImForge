@@ -26,7 +26,7 @@ struct NCallback : Callback<Args...> {
         : Callback<Args...>(function), times(0) {};
     
     inline void operator ()(Args... args){
-        if(this->times > N) return;
+        if(this->times++ > N) return;
         this->function(args...);
     }
 private:

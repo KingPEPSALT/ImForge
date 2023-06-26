@@ -113,8 +113,11 @@ int main(int, char**)
             parent.removeItem("0x03!", "or don't");
         }));
     
-    auto& item = menubar.getItemMut("02", "another");
-    
+    menubar.getItemMut("02", "another").callbacks.on("select",
+        new ImForge::Core::OnceCallback<ImForge::Core::UI::MenuBar&>([](auto& parent) {
+            parent.addItem("0x03!", "test!");
+        }));
+
     size_t last_copied = 3;
     std::string copy_buttons[3];
     while (!done)
@@ -128,7 +131,6 @@ int main(int, char**)
                 && event.window.windowID == SDL_GetWindowID(window));
         }
         menubar.pollEvents();
-        item.enabled = menubar.getItemMut("02.5f", "stuff").selected;
 
         // start ImGui frame
         ImGui_ImplSDLRenderer3_NewFrame();
