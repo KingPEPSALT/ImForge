@@ -96,24 +96,25 @@ int main(int, char**)
 
     bool done = false;
 
-    menubar.getItemMut("0x03!", "hello")->on_first_select_callback = 
-        [](auto parent) {
-            auto menu_item = parent.getItemMut("0x03!", "hello");
-            menu_item->name = "goodbye";
-            menu_item->enabled = false;
-        };
+    menubar.getItemMut("0x03!", "hello").callbacks.on("select",  
+        new ImForge::Core::OnceCallback<ImForge::Core::UI::MenuBar&>([](auto& parent) {
+            auto& item = parent.getItemMut("0x03!", "hello");
+            item.name = "goodbye";
+            item.enabled = false;
+        }));
 
-    menubar.getItemMut("0x03!", "click me to delete me...")->on_first_select_callback = 
-        [](auto parent) {
-            //parent.addItem("0x03!", "I lied!");
-            parent.addMenu("0x04!!");
-            parent.addItem("0x04!!", "I lied!");
-        };
+    menubar.getItemMut("0x03!", "click me to delete me...").callbacks.on("select", 
+        new ImForge::Core::OnceCallback<ImForge::Core::UI::MenuBar&>([](auto& parent) {
+            parent.addItem("0x03!", "I lied!");
+        }));
 
-    menubar.getItemMut("0x03!", "or don't!")->on_first_select_callback = 
-        [](auto parent) {
+    menubar.getItemMut("0x03!", "or don't!").callbacks.on("select",
+        new ImForge::Core::OnceCallback<ImForge::Core::UI::MenuBar&>([](auto& parent) {
             parent.removeItem("0x03!", "or don't");
-        };
+        }));
+    
+    auto& item = menubar.getItemMut("02", "another");
+    
     size_t last_copied = 3;
     std::string copy_buttons[3];
     while (!done)
@@ -127,6 +128,7 @@ int main(int, char**)
                 && event.window.windowID == SDL_GetWindowID(window));
         }
         menubar.pollEvents();
+        item.enabled = menubar.getItemMut("02.5f", "stuff").selected;
 
         // start ImGui frame
         ImGui_ImplSDLRenderer3_NewFrame();

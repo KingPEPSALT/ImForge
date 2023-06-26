@@ -47,16 +47,9 @@ bool MenuBar::attach() {
 void MenuBar::pollEvents() {
     for(auto& menu: this->menus)
         for(auto& item: menu.second){
-            if(!item.selected)
-                continue;
-            if(item.first_select && item.on_first_select_callback) {
-                item.on_first_select_callback(*this);
-                item.first_select = false;
-                continue;
-            }
-            if(!item.on_select_callback)
-                continue;
-            item.on_select_callback(*this);
+            if(item.selected)
+                item.callbacks.invoke("select", *this);
+            item.callbacks.invoke("update", *this); 
         }
 }
 
@@ -99,7 +92,7 @@ MenuBar& MenuBar::addItems(
     return *this;
 };
 
-// same as earlier (line 63), we may wish to throw exceptions here
+// same as earlier (line 61), we may wish to throw exceptions here
 MenuBar& MenuBar::insertItemAfter(
     std::string menu_name,
     std::string item_before,

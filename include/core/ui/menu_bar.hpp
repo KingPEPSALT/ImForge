@@ -5,6 +5,7 @@
 #include <map>
 #include <spdlog/spdlog.h>
 #include <string>
+#include "../callback.hpp"
 namespace ImForge::Core::UI {
 
 /**
@@ -17,55 +18,50 @@ struct MenuBar {
      * @brief A menu item contained within a menu
      */
     struct MenuItem {
+
         std::string name; 
         const char* shortcut;
         bool selected;
         bool enabled;
-        void (*on_select_callback)(MenuBar& parent);
-        void (*on_first_select_callback)(MenuBar& parent);
-        bool first_select;    
+        Callbacks<MenuBar&> callbacks;
         
         MenuItem(
             std::string name,
             const char* shortcut = NULL,
             bool selected = false,
             bool enabled = true,
-            void (*on_select_callback)(MenuBar& parent) = nullptr,
-            void (*on_first_select_callback)(MenuBar& parent) = nullptr,
-            bool first_select = true
+            Callbacks<MenuBar&> callbacks = Callbacks<MenuBar&>()
         ) : name(name)
             , shortcut(shortcut)
             , selected(selected)
             , enabled(enabled)
-            , on_select_callback(on_select_callback)
-            , on_first_select_callback(on_first_select_callback)
-            , first_select(first_select) {};
+            , callbacks(callbacks)
+        {};
         
         MenuItem(
             const char* name,
             const char* shortcut = NULL,
             bool selected = false,
             bool enabled = true,
-            void (*on_select_callback)(MenuBar& parent) = nullptr,
-            void (*on_first_select_callback)(MenuBar& parent) = nullptr,
-            bool first_select = true
+            Callbacks<MenuBar&> callbacks = Callbacks<MenuBar&>()
         ) : name(name) 
             , shortcut(shortcut)
             , selected(selected)
             , enabled(enabled)
-            , on_select_callback(on_select_callback)
-            , on_first_select_callback(on_first_select_callback)
-            , first_select(first_select) {};
+            , callbacks(callbacks) 
+        {};
 
         MenuItem() {};
     };
 
 
     /* 
+        --- why do we need a vector here? ---
         maps don't maintain insertion order and so without using
         another library, (as there is nothing in the std of the
         like), we just use a vector.
 
+        --- why not use const char*? ---
         to avoid writing our own const char* comparison struct
         we opt to use std::string for the map's keyval, for why
         we can't use const char*:
@@ -78,18 +74,18 @@ struct MenuBar {
 
     void pollEvents();
 
-    inline MenuItem* getItemMut(std::string menu_name, std::string item_name){
+    inline MenuItem& getItemMut(std::string menu_name, std::string item_name){
         auto pos = this->menus[menu_name].begin();
         while(pos != this->menus[menu_name].end() && (pos++)->name != item_name);
-        return (--pos)._Ptr;
+        return *(--pos);
     }
 
     inline MenuItem getItem(std::string menu_name, std::string item_name){
-        return *this->getItemMut(menu_name, item_name);
+        return this->getItemMut(menu_name, item_name);
     }
 
-    inline std::vector<MenuItem>* getMenuMut(std::string name){
-        return &this->menus[name];
+    inline std::vector<MenuItem>& getMenuMut(std::string name){
+        return this->menus[name];
     }
 
     inline std::vector<MenuItem> getMenu(std::string name){
