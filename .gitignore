@@ -1,3 +1,7 @@
+# VSCode directories
 .vscode
 !.vscode/settings.json
+
+# CMake build directories
 _build
+build
